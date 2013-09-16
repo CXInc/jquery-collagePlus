@@ -106,8 +106,10 @@
                      * store the original size for resize events
                      *
                      */
-                    $img.data("width", w);
-                    $img.data("height", h);
+                    if(w > 0 && h > 0) {
+                        $img.data("width", w);
+                        $img.data("height", h);
+                    }
 
 
 
