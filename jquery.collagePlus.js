@@ -60,7 +60,9 @@
                 // collect elements to be re-sized in current row
                 elements    = [],
                 // track the number of rows generated
-                rownum = 1;
+                rownum = 1,
+                // track whether all preceding rows have been resized
+                previousAllResized = true;
 
 
             settings.images.each(
@@ -77,6 +79,14 @@
                         $img  = ($this.is("img")) ? $this : $(this).find("img");
 
 
+                    /*
+                     *
+                     * Skip the image if it's already in its final location
+                     *
+                     */
+                    if( $img.data('final') ) {
+                        return;
+                    }
 
                     /*
                      *
@@ -109,6 +119,10 @@
                     if(w > 0 && h > 0) {
                         $img.data("width", w);
                         $img.data("height", h);
+                    } else {
+                        // images without a size are not going to get resized
+                        // properly
+                        previousAllResized = false;
                     }
 
 
@@ -147,7 +161,7 @@
 
                         // call the method that calculates the final image sizes
                         // remove one set of padding as it's not needed for the last image in the row
-                        resizeRow(elements, (row - settings.padding), settings, rownum);
+                        resizeRow(elements, (row - settings.padding), settings, rownum, previousAllResized);
 
                         // reset our row
                         delete row;
@@ -165,7 +179,7 @@
                      *
                      */
                     if ( settings.images.length-1 == index && elements.length != 0){
-                        resizeRow(elements, row, settings, rownum);
+                        resizeRow(elements, row, settings, rownum, false);
 
                         // reset our row
                         delete row;
@@ -179,7 +193,7 @@
 
         });
 
-        function resizeRow( obj, row, settings, rownum) {
+        function resizeRow( obj, row, settings, rownum, isFinal) {
 
             /*
              *
@@ -307,6 +321,12 @@
                  */
                 applyModifications($obj, isNotLast, settings);
 
+                /*
+                 *
+                 * Remember if the image is already in its final location
+                 *
+                 */
+                $img.data('final', isFinal)
 
                 /*
                  *
