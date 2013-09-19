@@ -78,6 +78,17 @@
                     var $this = $(this),
                         $img  = ($this.is("img")) ? $this : $(this).find("img");
 
+                    /*
+                     *
+                     * Skip the image if it doesn't have a width yet. This
+                     * prevents the expensive width() and height() calls that
+                     * happen further down
+                     *
+                     */
+                    if( $img[0].clientWidth == 0 ) {
+                        previousAllResized = false;
+                        return;
+                    }
 
                     /*
                      *
