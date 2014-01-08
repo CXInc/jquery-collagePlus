@@ -25,6 +25,8 @@
         var defaults = {
             // the ideal height you want your images to be
             'targetHeight'          : 400,
+            // minimum allowed image height
+            'minimumHeight'         : 200,
             // width of the area the collage will be in
             'albumWidth'            : this.width(),
             // padding between the images. Using padding left as we assume padding is even all the way round
@@ -42,7 +44,10 @@
             'direction'             : 'vertical',
             // Sometimes there is just one image on the last row and it gets blown up to a huge size to fit the
             // parent div width. To stop this behaviour, set this to true
-            'allowPartialLastRow'   : false
+            'allowPartialLastRow'   : false,
+            // Force layout of all images, regardless of whether their row has
+            // already been laid out
+            'force'                 : false
         };
 
         var settings = $.extend({}, defaults, options);
@@ -85,7 +90,7 @@
                      * happen further down
                      *
                      */
-                    if( $img[0].clientWidth == 0 ) {
+                    if( $img[0].naturalWidth == 0 ) {
                         previousAllResized = false;
                         return;
                     }
@@ -95,7 +100,7 @@
                      * Skip the image if it's already in its final location
                      *
                      */
-                    if( $img.data('final') ) {
+                    if( $img.data('final') && !settings.force ) {
                         return;
                     }
 
@@ -148,11 +153,42 @@
                         nh = Math.ceil(settings.targetHeight);
 
                     /*
+                    /*
                      *
-                     * Keep track of which images are in our row so far
+                     * calculate proposed row width including extra properties
+                     * like css borders
                      *
                      */
-                    elements.push([this, nw, nh, imgParams['w'], imgParams['h']]);
+                    proposedRowWidth = row + nw + imgParams['w'] + settings.padding;
+
+                    /*
+                     *
+                     * check what the row height will be if the current element
+                     * is added to the row
+                     *
+                     */
+                    proposedRowHeight = nh / proposedRowWidth * settings.albumWidth;
+
+                    /*
+                     *
+                     * if the proposed row will be shorter than the minimum
+                     * threshold, size the row without the current image
+                     *
+                     */
+
+                    var underMinimumHeight = proposedRowHeight < settings.minimumHeight,
+                        hasElements = elements.length > 0;
+
+                    if( underMinimumHeight && hasElements ){
+                        resizeRow(elements, (row - settings.padding), settings, rownum, previousAllResized, false);
+
+                        // reset our row
+                        delete row;
+                        delete elements;
+                        row         = 0;
+                        elements    = [];
+                        rownum      += 1;
+                    }
 
                     /*
                      *
@@ -164,6 +200,13 @@
 
                     /*
                      *
+                     * Keep track of which images are in our row so far
+                     *
+                     */
+                    elements.push([this, nw, nh, imgParams['w'], imgParams['h']]);
+
+                    /*
+                     *
                      * if the current row width is wider than the parent container
                      * it's time to make a row out of our images
                      *
@@ -172,7 +215,7 @@
 
                         // call the method that calculates the final image sizes
                         // remove one set of padding as it's not needed for the last image in the row
-                        resizeRow(elements, (row - settings.padding), settings, rownum, previousAllResized);
+                        resizeRow(elements, (row - settings.padding), settings, rownum, previousAllResized, false);
 
                         // reset our row
                         delete row;
@@ -190,7 +233,7 @@
                      *
                      */
                     if ( settings.images.length-1 == index && elements.length != 0){
-                        resizeRow(elements, row, settings, rownum, false);
+                        resizeRow(elements, row, settings, rownum, false, true);
 
                         // reset our row
                         delete row;
@@ -204,7 +247,7 @@
 
         });
 
-        function resizeRow( obj, row, settings, rownum, isFinal) {
+        function resizeRow( obj, row, settings, rownum, isFinal, lastRow) {
 
             /*
              *
@@ -226,13 +269,7 @@
                 overPercent         = albumWidthAdjusted / (row - imageExtras),
                 // start tracking our width with know values that will make up the total width
                 // like borders and padding
-                trackWidth          = imageExtras,
-                // guess whether this is the last row in a set by checking if the width is less
-                // than the parent width.
-                lastRow             = (row < settings.albumWidth  ? true : false);
-
-
-
+                trackWidth          = imageExtras;
 
 
             /*
